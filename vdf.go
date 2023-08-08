@@ -24,8 +24,8 @@ type VDF struct {
 }
 
 type KeyValue struct {
-	key string
-	value interface{}
+	Key string
+	Value interface{}
 	isRoot bool `default:false`
 }
 
@@ -38,30 +38,30 @@ func PrintTabs(tabs int) {
 func (this KeyValue) GetString(key string) (string, bool) {
 	a, ok := this.Get(key)
 	if ok {
-		switch a.value.(type) {
+		switch a.Value.(type) {
 		case string:
-			return a.value.(string), true
+			return a.Value.(string), true
 		}
 	}
 	return "", false
 }
 
 func (this KeyValue) ToString() (string, bool) {
-	switch this.value.(type) {
+	switch this.Value.(type) {
 	case string:
-		return this.value.(string), true
+		return this.Value.(string), true
 	}
 	return "", false
 }
 
 func (this KeyValue) Get(key string) (*KeyValue, bool) {
-	switch this.value.(type) {
+	switch this.Value.(type) {
 	case string:
 		return nil, false
 	case []*KeyValue:
-		arr := this.value.([]*KeyValue)
+		arr := this.Value.([]*KeyValue)
 		for _, item := range arr {
-			if key == item.key {
+			if key == item.Key {
 				return item, true
 			}
 		}
@@ -70,14 +70,14 @@ func (this KeyValue) Get(key string) (*KeyValue, bool) {
 }
 
 func (this KeyValue) GetAll(key string) ([]*KeyValue, bool) {
-	switch this.value.(type) {
+	switch this.Value.(type) {
 	case string:
 		return nil, false
 	case []*KeyValue:
 		ret := []*KeyValue{}
-		arr := this.value.([]*KeyValue)
+		arr := this.Value.([]*KeyValue)
 		for _, item := range arr {
-			if key == item.key {
+			if key == item.Key {
 				ret = append(ret, item)
 			}
 		}
@@ -104,22 +104,22 @@ func (this KeyValue) GetSubElement(path []string) (*KeyValue, bool) {
 }
 
 func (this KeyValue) GetChilds() ([]*KeyValue) {
-	switch this.value.(type) {
+	switch this.Value.(type) {
 	case []*KeyValue:
-		return this.value.([]*KeyValue)
+		return this.Value.([]*KeyValue)
 	}
 	return []*KeyValue{}
 }
 
 func (this KeyValue) ToStringMap() (*map[string]string, bool) {
-	switch this.value.(type) {
+	switch this.Value.(type) {
 	case []*KeyValue:
 		ret := make(map[string]string)
-		arr := this.value.([]*KeyValue)
+		arr := this.Value.([]*KeyValue)
 		for _, item := range arr {
-			switch item.value.(type) {
+			switch item.Value.(type) {
 			case string:
-				ret[item.key] = item.value.(string)
+				ret[item.Key] = item.Value.(string)
 			}
 		}
 		return &ret, true
@@ -142,21 +142,21 @@ func (this KeyValue) GetSubElementStringMap(path []string) (*map[string]string, 
 }
 
 func (this KeyValue) RemoveDuplicates() {
-	switch this.value.(type) {
+	switch this.Value.(type) {
 	case []*KeyValue:
 		allKeys := make(map[string]bool)
 		list := []*KeyValue{}
 
-		arr := this.value.([]*KeyValue)
+		arr := this.Value.([]*KeyValue)
 		for _, item := range arr {
-			key := item.key
+			key := item.Key
 			if _, value := allKeys[key]; !value {
 				allKeys[key] = true
 				list = append(list, item)
 				item.RemoveDuplicates()
 			}
 		}
-		this.value = list
+		this.Value = list
 	}
 }
 
@@ -170,15 +170,15 @@ func (this KeyValue) Print(optional ...int) {
 		tabs = -1
 	}
 
-	switch this.value.(type) {
+	switch this.Value.(type) {
 	case []*KeyValue:
 		if !this.isRoot {
 			PrintTabs(tabs)
-			fmt.Println("\"" + this.key + "\"")
+			fmt.Println("\"" + this.Key + "\"")
 			PrintTabs(tabs)
 			fmt.Println("{")
 		}
-		arr := this.value.([]*KeyValue)
+		arr := this.Value.([]*KeyValue)
 		for _, val := range arr {
 			val.Print(tabs + 1);
 		}
@@ -189,7 +189,7 @@ func (this KeyValue) Print(optional ...int) {
 		}
 	case string:
 		PrintTabs(tabs)
-		fmt.Println("\"" + this.key + "\"		\"" + this.value.(string) + "\"")
+		fmt.Println("\"" + this.Key + "\"		\"" + this.Value.(string) + "\"")
 	default:
 		fmt.Println(this)
 		panic("unknown type")
@@ -199,13 +199,13 @@ func (this KeyValue) Print(optional ...int) {
 func (this *KeyValue) toJSON() interface{} {
 	ret := make(map[string]interface{})
 
-	switch this.value.(type) {
+	switch this.Value.(type) {
 	case string:
-		return this.value.(string)
+		return this.Value.(string)
 	case []*KeyValue:
-		arr := this.value.([]*KeyValue)
+		arr := this.Value.([]*KeyValue)
 		for _, kv := range arr {
-			ret[kv.key] = kv.toJSON()
+			ret[kv.Key] = kv.toJSON()
 		}
 	}
 
@@ -229,7 +229,7 @@ func (this *VDF) Parse(s []byte) KeyValue {
 	stringStack := stack.New()
 	levelStack := stack.New()
 
-	var currentLevel *KeyValue = &KeyValue{key: "root", value: []*KeyValue{}, isRoot: true}
+	var currentLevel *KeyValue = &KeyValue{Key: "root", Value: []*KeyValue{}, isRoot: true}
 	var result KeyValue
 
 TokenLoop:
@@ -238,10 +238,10 @@ TokenLoop:
 		switch token {
 		case openingBrace:
 			key := stringStack.Pop().(string)
-			subLevel := KeyValue{key: key, value: []*KeyValue{}}
+			subLevel := KeyValue{Key: key, Value: []*KeyValue{}}
 
 			if currentLevel != nil {
-				currentLevel.value = append(currentLevel.value.([]*KeyValue), &subLevel)
+				currentLevel.Value = append(currentLevel.Value.([]*KeyValue), &subLevel)
 			}
 
 			levelStack.Push(currentLevel)
@@ -255,7 +255,7 @@ TokenLoop:
 			if stringStack.Len() > 1 {
 				value := stringStack.Pop().(string)
 				key := stringStack.Pop().(string)
-				currentLevel.value = append(currentLevel.value.([]*KeyValue), &KeyValue{key: key, value: value})
+				currentLevel.Value = append(currentLevel.Value.([]*KeyValue), &KeyValue{Key: key, Value: value})
 			}
 		case stringValue: stringStack.Push(s)
 		case endToken: break TokenLoop
