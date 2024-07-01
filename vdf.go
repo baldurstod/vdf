@@ -10,7 +10,8 @@ import (
 type Token int
 
 const (
-	OPENING_BRACE Token = iota
+	INVALID_TOKEN Token = iota
+	OPENING_BRACE
 	CLOSING_BRACE
 	NEW_LINE
 	STRING_VALUE
@@ -21,6 +22,7 @@ type VDF struct {
 	s   []byte
 	i   int
 	len int
+	t   Token
 }
 
 func PrintTabs(tabs int) {
@@ -33,6 +35,7 @@ func (vdf *VDF) Parse(s []byte) KeyValue {
 	vdf.s = s
 	vdf.i = 0
 	vdf.len = len(s)
+	vdf.t = INVALID_TOKEN
 
 	stringStack := stack.New()
 	levelStack := stack.New()
@@ -83,6 +86,14 @@ func (vdf *VDF) getNextRune() (rune, int) {
 }
 
 func (vdf *VDF) getNextToken() (Token, string) {
+	if vdf.t != INVALID_TOKEN {
+		t := vdf.t
+		vdf.t = INVALID_TOKEN
+		return t, ""
+	}
+
+	s := ""
+
 	for vdf.i < vdf.len {
 		c, size := vdf.getNextRune()
 		vdf.i += size
@@ -92,7 +103,12 @@ func (vdf *VDF) getNextToken() (Token, string) {
 		case '}':
 			return CLOSING_BRACE, ""
 		case '\r', '\n':
-			return NEW_LINE, ""
+			if s != "" {
+				vdf.t = NEW_LINE
+				return STRING_VALUE, s
+			} else {
+				return NEW_LINE, ""
+			}
 		case ' ', '\t': //just eat a char
 		case '"':
 			s := ""
@@ -124,6 +140,8 @@ func (vdf *VDF) getNextToken() (Token, string) {
 					break
 				}
 			}
+		default:
+			s += string(c)
 		}
 	}
 	return END_TOKEN, ""
