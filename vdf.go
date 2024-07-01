@@ -1,10 +1,11 @@
 package vdf
 
 import (
-	"github.com/golang-collections/collections/stack"
-	"unicode/utf8"
-	"fmt"
 	"encoding/json"
+	"fmt"
+	"unicode/utf8"
+
+	"github.com/golang-collections/collections/stack"
 )
 
 type Token int
@@ -18,15 +19,15 @@ const (
 )
 
 type VDF struct {
-	s []byte
-	i int
+	s   []byte
+	i   int
 	len int
 }
 
 type KeyValue struct {
-	Key string
-	Value interface{}
-	isRoot bool `default:false`
+	Key    string
+	Value  interface{}
+	isRoot bool
 }
 
 func PrintTabs(tabs int) {
@@ -35,8 +36,8 @@ func PrintTabs(tabs int) {
 	}
 }
 
-func (this KeyValue) GetString(key string) (string, bool) {
-	a, ok := this.Get(key)
+func (kv *KeyValue) GetString(key string) (string, bool) {
+	a, ok := kv.Get(key)
 	if ok {
 		switch a.Value.(type) {
 		case string:
@@ -46,20 +47,20 @@ func (this KeyValue) GetString(key string) (string, bool) {
 	return "", false
 }
 
-func (this KeyValue) ToString() (string, bool) {
-	switch this.Value.(type) {
+func (kv *KeyValue) ToString() (string, bool) {
+	switch kv.Value.(type) {
 	case string:
-		return this.Value.(string), true
+		return kv.Value.(string), true
 	}
 	return "", false
 }
 
-func (this KeyValue) Get(key string) (*KeyValue, bool) {
-	switch this.Value.(type) {
+func (kv *KeyValue) Get(key string) (*KeyValue, bool) {
+	switch kv.Value.(type) {
 	case string:
 		return nil, false
 	case []*KeyValue:
-		arr := this.Value.([]*KeyValue)
+		arr := kv.Value.([]*KeyValue)
 		for _, item := range arr {
 			if key == item.Key {
 				return item, true
@@ -69,13 +70,13 @@ func (this KeyValue) Get(key string) (*KeyValue, bool) {
 	return nil, false
 }
 
-func (this KeyValue) GetAll(key string) ([]*KeyValue, bool) {
-	switch this.Value.(type) {
+func (kv *KeyValue) GetAll(key string) ([]*KeyValue, bool) {
+	switch kv.Value.(type) {
 	case string:
 		return nil, false
 	case []*KeyValue:
 		ret := []*KeyValue{}
-		arr := this.Value.([]*KeyValue)
+		arr := kv.Value.([]*KeyValue)
 		for _, item := range arr {
 			if key == item.Key {
 				ret = append(ret, item)
@@ -88,8 +89,8 @@ func (this KeyValue) GetAll(key string) ([]*KeyValue, bool) {
 	return nil, false
 }
 
-func (this KeyValue) GetSubElement(path []string) (*KeyValue, bool) {
-	if subElements, ok := this.GetAll(path[0]); ok {
+func (kv *KeyValue) GetSubElement(path []string) (*KeyValue, bool) {
+	if subElements, ok := kv.GetAll(path[0]); ok {
 		if len(path) == 1 {
 			return subElements[0], true
 		} else {
@@ -103,19 +104,19 @@ func (this KeyValue) GetSubElement(path []string) (*KeyValue, bool) {
 	return nil, false
 }
 
-func (this KeyValue) GetChilds() ([]*KeyValue) {
-	switch this.Value.(type) {
+func (kv *KeyValue) GetChilds() []*KeyValue {
+	switch kv.Value.(type) {
 	case []*KeyValue:
-		return this.Value.([]*KeyValue)
+		return kv.Value.([]*KeyValue)
 	}
 	return []*KeyValue{}
 }
 
-func (this KeyValue) ToStringMap() (*map[string]string, bool) {
-	switch this.Value.(type) {
+func (kv *KeyValue) ToStringMap() (*map[string]string, bool) {
+	switch kv.Value.(type) {
 	case []*KeyValue:
 		ret := make(map[string]string)
-		arr := this.Value.([]*KeyValue)
+		arr := kv.Value.([]*KeyValue)
 		for _, item := range arr {
 			switch item.Value.(type) {
 			case string:
@@ -127,27 +128,27 @@ func (this KeyValue) ToStringMap() (*map[string]string, bool) {
 	return nil, false
 }
 
-func (this KeyValue) GetStringMap(key string) (*map[string]string, bool) {
-	if sub, ok := this.Get(key); ok {
+func (kv *KeyValue) GetStringMap(key string) (*map[string]string, bool) {
+	if sub, ok := kv.Get(key); ok {
 		return sub.ToStringMap()
 	}
 	return nil, false
 }
 
-func (this KeyValue) GetSubElementStringMap(path []string) (*map[string]string, bool) {
-	if sub, ok := this.GetSubElement(path); ok {
+func (kv *KeyValue) GetSubElementStringMap(path []string) (*map[string]string, bool) {
+	if sub, ok := kv.GetSubElement(path); ok {
 		return sub.ToStringMap()
 	}
 	return nil, false
 }
 
-func (this KeyValue) RemoveDuplicates() {
-	switch this.Value.(type) {
+func (kv *KeyValue) RemoveDuplicates() {
+	switch kv.Value.(type) {
 	case []*KeyValue:
 		allKeys := make(map[string]bool)
 		list := []*KeyValue{}
 
-		arr := this.Value.([]*KeyValue)
+		arr := kv.Value.([]*KeyValue)
 		for _, item := range arr {
 			key := item.Key
 			if _, value := allKeys[key]; !value {
@@ -156,75 +157,70 @@ func (this KeyValue) RemoveDuplicates() {
 				item.RemoveDuplicates()
 			}
 		}
-		this.Value = list
+		kv.Value = list
 	}
 }
 
-func (this KeyValue) Print(optional ...int) {
+func (kv *KeyValue) Print(optional ...int) {
 	tabs := 0
 	if len(optional) > 0 {
 		tabs = optional[0]
 	}
 
-	if this.isRoot {
+	if kv.isRoot {
 		tabs = -1
 	}
 
-	switch this.Value.(type) {
+	switch kv.Value.(type) {
 	case []*KeyValue:
-		if !this.isRoot {
+		if !kv.isRoot {
 			PrintTabs(tabs)
-			fmt.Println("\"" + this.Key + "\"")
+			fmt.Println("\"" + kv.Key + "\"")
 			PrintTabs(tabs)
 			fmt.Println("{")
 		}
-		arr := this.Value.([]*KeyValue)
+		arr := kv.Value.([]*KeyValue)
 		for _, val := range arr {
-			val.Print(tabs + 1);
+			val.Print(tabs + 1)
 		}
 
-		if !this.isRoot {
+		if !kv.isRoot {
 			PrintTabs(tabs)
 			fmt.Println("}")
 		}
 	case string:
 		PrintTabs(tabs)
-		fmt.Println("\"" + this.Key + "\"		\"" + this.Value.(string) + "\"")
+		fmt.Println("\"" + kv.Key + "\"		\"" + kv.Value.(string) + "\"")
 	default:
-		fmt.Println(this)
+		fmt.Println(kv)
 		panic("unknown type")
 	}
 }
 
-func (this *KeyValue) toJSON() interface{} {
+func (kv *KeyValue) toJSON() interface{} {
 	ret := make(map[string]interface{})
 
-	switch this.Value.(type) {
+	switch kv.Value.(type) {
 	case string:
-		return this.Value.(string)
+		return kv.Value.(string)
 	case []*KeyValue:
-		arr := this.Value.([]*KeyValue)
-		for _, kv := range arr {
-			ret[kv.Key] = kv.toJSON()
+		arr := kv.Value.([]*KeyValue)
+		for _, subKv := range arr {
+			ret[subKv.Key] = subKv.toJSON()
 		}
 	}
 
 	return ret
 }
 
-func (this KeyValue) MarshalJSON() ([]byte, error) {
-	var ret interface{}
-
-	ret = this.toJSON()
-
-	return json.Marshal(ret)
+func (kv *KeyValue) MarshalJSON() ([]byte, error) {
+	return json.Marshal(kv.toJSON())
 }
 
-
-func (this *VDF) Parse(s []byte) KeyValue {
-	this.s = s
-	this.i = 0
-	this.len = len(s)
+func (vdf *VDF) Parse(s []byte) KeyValue {
+	vdf.s = s
+	vdf.i = 0
+	vdf.len = len(s)
 
 	stringStack := stack.New()
 	levelStack := stack.New()
@@ -234,7 +230,7 @@ func (this *VDF) Parse(s []byte) KeyValue {
 
 TokenLoop:
 	for {
-		token, s := this.getNextToken()
+		token, s := vdf.getNextToken()
 		switch token {
 		case openingBrace:
 			key := stringStack.Pop().(string)
@@ -257,40 +253,45 @@ TokenLoop:
 				key := stringStack.Pop().(string)
 				currentLevel.Value = append(currentLevel.Value.([]*KeyValue), &KeyValue{Key: key, Value: value})
 			}
-		case stringValue: stringStack.Push(s)
-		case endToken: break TokenLoop
+		case stringValue:
+			stringStack.Push(s)
+		case endToken:
+			break TokenLoop
 		}
 	}
 
 	return result
 }
 
-func (this *VDF) getNextRune() (rune, int) {
-	c, size := utf8.DecodeRune(this.s)
-	this.s = this.s[size:]
+func (vdf *VDF) getNextRune() (rune, int) {
+	c, size := utf8.DecodeRune(vdf.s)
+	vdf.s = vdf.s[size:]
 
 	return c, size
 }
 
-func (this *VDF) getNextToken() (Token, string) {
-	for this.i < this.len {
-		c, size := this.getNextRune()
-		this.i += size
+func (vdf *VDF) getNextToken() (Token, string) {
+	for vdf.i < vdf.len {
+		c, size := vdf.getNextRune()
+		vdf.i += size
 		switch c {
-		case '{': return openingBrace, ""
-		case '}': return closingBrace, ""
-		case '\r', '\n': return newLine, ""
-		case ' ', '\t'://just eat a char
+		case '{':
+			return openingBrace, ""
+		case '}':
+			return closingBrace, ""
+		case '\r', '\n':
+			return newLine, ""
+		case ' ', '\t': //just eat a char
 		case '"':
 			s := ""
-			for this.i < this.len {
-				c, size := this.getNextRune()
-				this.i += size
+			for vdf.i < vdf.len {
+				c, size := vdf.getNextRune()
+				vdf.i += size
 				switch c {
 				case '\\':
-					if this.i < this.len {
-						c, size := this.getNextRune()
-						this.i += size
+					if vdf.i < vdf.len {
+						c, size := vdf.getNextRune()
+						vdf.i += size
 						if c == '"' {
 							s += "\\\""
 						} else {
@@ -304,9 +305,9 @@ func (this *VDF) getNextToken() (Token, string) {
 				}
 			}
 		case '/':
-			for this.i < this.len {
-				c, size := this.getNextRune()
-				this.i += size
+			for vdf.i < vdf.len {
+				c, size := vdf.getNextRune()
+				vdf.i += size
 				if c == '\r' || c == '\n' {
 					break
 				}
