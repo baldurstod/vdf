@@ -11,11 +11,11 @@ import (
 type Token int
 
 const (
-	openingBrace Token = iota
-	closingBrace
-	newLine
-	stringValue
-	endToken
+	OPENING_BRACE Token = iota
+	CLOSING_BRACE
+	NEW_LINE
+	STRING_VALUE
+	END_TOKEN
 )
 
 type VDF struct {
@@ -232,7 +232,7 @@ TokenLoop:
 	for {
 		token, s := vdf.getNextToken()
 		switch token {
-		case openingBrace:
+		case OPENING_BRACE:
 			key := stringStack.Pop().(string)
 			subLevel := KeyValue{Key: key, Value: []*KeyValue{}}
 
@@ -242,20 +242,20 @@ TokenLoop:
 
 			levelStack.Push(currentLevel)
 			currentLevel = &subLevel
-		case closingBrace:
+		case CLOSING_BRACE:
 			currentLevel = levelStack.Pop().(*KeyValue)
 			if currentLevel != nil {
 				result = *currentLevel
 			}
-		case newLine:
+		case NEW_LINE:
 			if stringStack.Len() > 1 {
 				value := stringStack.Pop().(string)
 				key := stringStack.Pop().(string)
 				currentLevel.Value = append(currentLevel.Value.([]*KeyValue), &KeyValue{Key: key, Value: value})
 			}
-		case stringValue:
+		case STRING_VALUE:
 			stringStack.Push(s)
-		case endToken:
+		case END_TOKEN:
 			break TokenLoop
 		}
 	}
@@ -276,11 +276,11 @@ func (vdf *VDF) getNextToken() (Token, string) {
 		vdf.i += size
 		switch c {
 		case '{':
-			return openingBrace, ""
+			return OPENING_BRACE, ""
 		case '}':
-			return closingBrace, ""
+			return CLOSING_BRACE, ""
 		case '\r', '\n':
-			return newLine, ""
+			return NEW_LINE, ""
 		case ' ', '\t': //just eat a char
 		case '"':
 			s := ""
@@ -299,7 +299,7 @@ func (vdf *VDF) getNextToken() (Token, string) {
 						}
 					}
 				case '"':
-					return stringValue, s
+					return STRING_VALUE, s
 				default:
 					s += string(c)
 				}
@@ -314,5 +314,5 @@ func (vdf *VDF) getNextToken() (Token, string) {
 			}
 		}
 	}
-	return endToken, ""
+	return END_TOKEN, ""
 }
