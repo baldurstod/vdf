@@ -2,6 +2,7 @@ package vdf
 
 import (
 	"fmt"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/golang-collections/collections/stack"
@@ -92,7 +93,7 @@ func (vdf *VDF) getNextToken() (Token, string) {
 		return t, ""
 	}
 
-	s := ""
+	var sb strings.Builder
 
 	for vdf.i < vdf.len {
 		c, size := vdf.getNextRune()
@@ -103,15 +104,15 @@ func (vdf *VDF) getNextToken() (Token, string) {
 		case '}':
 			return CLOSING_BRACE, ""
 		case '\r', '\n':
-			if s != "" {
+			if sb.Len() != 0 {
 				vdf.t = NEW_LINE
-				return STRING_VALUE, s
+				return STRING_VALUE, sb.String()
 			} else {
 				return NEW_LINE, ""
 			}
 		case ' ', '\t': //just eat a char
 		case '"':
-			s := ""
+			var sb strings.Builder
 			for vdf.i < vdf.len {
 				c, size := vdf.getNextRune()
 				vdf.i += size
@@ -121,15 +122,15 @@ func (vdf *VDF) getNextToken() (Token, string) {
 						c, size := vdf.getNextRune()
 						vdf.i += size
 						if c == '"' {
-							s += "\\\""
+							sb.WriteString("\\\"")
 						} else {
-							s += `\` + string(c)
+							sb.WriteString(`\` + string(c))
 						}
 					}
 				case '"':
-					return STRING_VALUE, s
+					return STRING_VALUE, sb.String()
 				default:
-					s += string(c)
+					sb.WriteString(string(c))
 				}
 			}
 		case '/':
@@ -141,7 +142,7 @@ func (vdf *VDF) getNextToken() (Token, string) {
 				}
 			}
 		default:
-			s += string(c)
+			sb.WriteString(string(c))
 		}
 	}
 	return END_TOKEN, ""
