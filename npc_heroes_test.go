@@ -2,6 +2,7 @@ package vdf_test
 
 import (
 	"errors"
+	"log"
 	"os"
 	"path"
 	"testing"
@@ -55,4 +56,33 @@ func TestNpcHeroes(t *testing.T) {
 		t.Error(errors.New("hero not enabled"))
 		return
 	}
+
+	attackSpeedActivityModifiers, err := antimage.Get("AttackSpeedActivityModifiers")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	for _, modifier := range attackSpeedActivityModifiers.GetChilds() {
+		value, err := modifier.ToInt()
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		log.Println(modifier.Key, value)
+	}
+
+	adjectives, err := antimage.Get("Adjectives")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	for _, modifier := range adjectives.GetChilds() {
+		value, err := modifier.ToBool()
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		log.Println(modifier.Key, value)
+	}
+
 }

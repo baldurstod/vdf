@@ -69,6 +69,33 @@ func (kv *KeyValue) ToString() (string, error) {
 	}
 }
 
+func (kv *KeyValue) ToInt() (int, error) {
+	s, err := kv.ToString()
+	if err != nil {
+		return 0, err
+	}
+
+	i, err := strconv.Atoi(s)
+	if err != nil {
+		return 0, fmt.Errorf("can't convert to int: <%w>", err)
+	}
+
+	return i, nil
+}
+
+func (kv *KeyValue) ToBool() (bool, error) {
+	s, err := kv.ToString()
+	if err != nil {
+		return false, err
+	}
+
+	if s == "1" {
+		return true, nil
+	} else {
+		return false, nil
+	}
+}
+
 func (kv *KeyValue) Get(key string) (*KeyValue, error) {
 	switch v := kv.Value.(type) {
 	case []*KeyValue:
