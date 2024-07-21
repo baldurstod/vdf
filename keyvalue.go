@@ -47,6 +47,19 @@ func (kv *KeyValue) GetInt(key string) (int, error) {
 	return i, nil
 }
 
+func (kv *KeyValue) GetBool(key string) (bool, error) {
+	s, err := kv.GetString(key)
+	if err != nil {
+		return false, err
+	}
+
+	if s == "1" {
+		return true, nil
+	} else {
+		return false, nil
+	}
+}
+
 func (kv *KeyValue) ToString() (string, error) {
 	switch kv.Value.(type) {
 	case string:

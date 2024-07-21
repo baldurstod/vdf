@@ -44,4 +44,15 @@ func TestNpcHeroes(t *testing.T) {
 		t.Error(errors.New("wrong HeroID"))
 		return
 	}
+
+	enabled, err := antimage.GetBool("Enabled")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	if !enabled {
+		t.Error(errors.New("hero not enabled"))
+		return
+	}
 }
