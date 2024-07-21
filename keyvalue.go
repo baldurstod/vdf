@@ -3,6 +3,7 @@ package vdf
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 )
 
 type KeyValue struct {
@@ -14,12 +15,28 @@ type KeyValue struct {
 func (kv *KeyValue) GetString(key string) (string, bool) {
 	a, ok := kv.Get(key)
 	if ok {
-		switch a.Value.(type) {
+		switch s := a.Value.(type) {
 		case string:
-			return a.Value.(string), true
+			return s, true
 		}
 	}
 	return "", false
+}
+
+func (kv *KeyValue) GetInt(key string) (int, bool) {
+	a, ok := kv.Get(key)
+	if ok {
+		switch s := a.Value.(type) {
+		case string:
+			i, err := strconv.Atoi(s)
+
+			if err != nil {
+				return 0, false
+			}
+			return i, true
+		}
+	}
+	return 0, false
 }
 
 func (kv *KeyValue) ToString() (string, bool) {

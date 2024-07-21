@@ -1,3 +1,5 @@
+//go:build sfm_default_animation_groups
+
 package vdf_test
 
 import (
