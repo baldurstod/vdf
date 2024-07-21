@@ -2,8 +2,10 @@ package vdf
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 )
 
 type KeyValue struct {
@@ -12,88 +14,94 @@ type KeyValue struct {
 	isRoot bool
 }
 
-func (kv *KeyValue) GetString(key string) (string, bool) {
-	a, ok := kv.Get(key)
-	if ok {
-		switch s := a.Value.(type) {
-		case string:
-			return s, true
-		}
+func (kv *KeyValue) GetString(key string) (string, error) {
+	a, err := kv.Get(key)
+	if err != nil {
+		return "", err
 	}
-	return "", false
+
+	s, ok := a.Value.(string)
+	if !ok {
+		return "", errors.New("unexpected value type for key " + key)
+	}
+
+	return s, nil
 }
 
-func (kv *KeyValue) GetInt(key string) (int, bool) {
-	a, ok := kv.Get(key)
-	if ok {
-		switch s := a.Value.(type) {
-		case string:
-			i, err := strconv.Atoi(s)
-
-			if err != nil {
-				return 0, false
-			}
-			return i, true
-		}
+func (kv *KeyValue) GetInt(key string) (int, error) {
+	a, err := kv.Get(key)
+	if err != nil {
+		return 0, err
 	}
-	return 0, false
+
+	s, ok := a.Value.(string)
+	if !ok {
+		return 0, errors.New("unexpected value type for key " + key)
+	}
+
+	i, err := strconv.Atoi(s)
+	if err != nil {
+		return 0, fmt.Errorf("can't convert key %s to int: <%w>", key, err)
+	}
+
+	return i, nil
 }
 
-func (kv *KeyValue) ToString() (string, bool) {
+func (kv *KeyValue) ToString() (string, error) {
 	switch kv.Value.(type) {
 	case string:
-		return kv.Value.(string), true
+		return kv.Value.(string), nil
+	default:
+		return "", errors.New("unexpected value type")
 	}
-	return "", false
 }
 
-func (kv *KeyValue) Get(key string) (*KeyValue, bool) {
-	switch kv.Value.(type) {
-	case string:
-		return nil, false
+func (kv *KeyValue) Get(key string) (*KeyValue, error) {
+	switch v := kv.Value.(type) {
 	case []*KeyValue:
-		arr := kv.Value.([]*KeyValue)
-		for _, item := range arr {
+		for _, item := range v {
 			if key == item.Key {
-				return item, true
+				return item, nil
 			}
 		}
+	default:
+		return nil, errors.New("unexpected element type")
 	}
-	return nil, false
+	return nil, errors.New("key not found: " + key)
 }
 
-func (kv *KeyValue) GetAll(key string) ([]*KeyValue, bool) {
-	switch kv.Value.(type) {
-	case string:
-		return nil, false
+func (kv *KeyValue) GetAll(key string) ([]*KeyValue, error) {
+	switch v := kv.Value.(type) {
 	case []*KeyValue:
 		ret := []*KeyValue{}
-		arr := kv.Value.([]*KeyValue)
-		for _, item := range arr {
+		for _, item := range v {
 			if key == item.Key {
 				ret = append(ret, item)
 			}
 		}
-		if len(ret) > 0 {
-			return ret, true
-		}
+		return ret, nil
+	default:
+		return nil, errors.New("unexpected element type")
 	}
-	return nil, false
 }
 
-func (kv *KeyValue) GetSubElement(path []string) (*KeyValue, bool) {
-	if subElements, ok := kv.GetAll(path[0]); ok {
-		if len(path) == 1 {
-			return subElements[0], true
-		} else {
-			for _, subElement := range subElements {
-				if subElement2, ok := subElement.GetSubElement(path[1:]); ok {
-					return subElement2, true
-				}
+func (kv *KeyValue) GetSubElement(path []string) (*KeyValue, error) {
+	subElements, err := kv.GetAll(path[0])
+	if err != nil {
+		return nil, err
+	}
+
+	if len(path) == 1 {
+		return subElements[0], nil
+	} else {
+		for _, subElement := range subElements {
+			if subElement2, err := subElement.GetSubElement(path[1:]); err == nil {
+				return subElement2, nil
 			}
 		}
 	}
-	return nil, false
+
+	return nil, errors.New("subelement not found for path: " + strings.Join(path, "."))
 }
 
 func (kv *KeyValue) GetChilds() []*KeyValue {
@@ -104,34 +112,37 @@ func (kv *KeyValue) GetChilds() []*KeyValue {
 	return []*KeyValue{}
 }
 
-func (kv *KeyValue) ToStringMap() (*map[string]string, bool) {
-	switch kv.Value.(type) {
+func (kv *KeyValue) ToStringMap() (*map[string]string, error) {
+	switch v := kv.Value.(type) {
 	case []*KeyValue:
 		ret := make(map[string]string)
-		arr := kv.Value.([]*KeyValue)
-		for _, item := range arr {
+		for _, item := range v {
 			switch item.Value.(type) {
 			case string:
 				ret[item.Key] = item.Value.(string)
 			}
 		}
-		return &ret, true
+		return &ret, nil
+	default:
+		return nil, errors.New("unexpected element type")
 	}
-	return nil, false
 }
 
-func (kv *KeyValue) GetStringMap(key string) (*map[string]string, bool) {
-	if sub, ok := kv.Get(key); ok {
-		return sub.ToStringMap()
+func (kv *KeyValue) GetStringMap(key string) (*map[string]string, error) {
+	sub, err := kv.Get(key)
+
+	if err != nil {
+		return nil, err
 	}
-	return nil, false
+	return sub.ToStringMap()
 }
 
-func (kv *KeyValue) GetSubElementStringMap(path []string) (*map[string]string, bool) {
-	if sub, ok := kv.GetSubElement(path); ok {
-		return sub.ToStringMap()
+func (kv *KeyValue) GetSubElementStringMap(path []string) (*map[string]string, error) {
+	sub, err := kv.GetSubElement(path)
+	if err != nil {
+		return nil, err
 	}
-	return nil, false
+	return sub.ToStringMap()
 }
 
 func (kv *KeyValue) RemoveDuplicates() {
@@ -163,7 +174,7 @@ func (kv *KeyValue) Print(optional ...int) {
 		tabs = -1
 	}
 
-	switch kv.Value.(type) {
+	switch v := kv.Value.(type) {
 	case []*KeyValue:
 		if !kv.isRoot {
 			PrintTabs(tabs)
@@ -171,8 +182,7 @@ func (kv *KeyValue) Print(optional ...int) {
 			PrintTabs(tabs)
 			fmt.Println("{")
 		}
-		arr := kv.Value.([]*KeyValue)
-		for _, val := range arr {
+		for _, val := range v {
 			val.Print(tabs + 1)
 		}
 
@@ -192,12 +202,11 @@ func (kv *KeyValue) Print(optional ...int) {
 func (kv *KeyValue) toJSON() interface{} {
 	ret := make(map[string]interface{})
 
-	switch kv.Value.(type) {
+	switch v := kv.Value.(type) {
 	case string:
 		return kv.Value.(string)
 	case []*KeyValue:
-		arr := kv.Value.([]*KeyValue)
-		for _, subKv := range arr {
+		for _, subKv := range v {
 			ret[subKv.Key] = subKv.toJSON()
 		}
 	}

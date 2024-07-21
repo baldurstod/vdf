@@ -22,21 +22,21 @@ func TestNpcHeroes(t *testing.T) {
 	vdf := vdf.VDF{}
 	root := vdf.Parse(dat)
 
-	heroes, ok := root.Get("DOTAHeroes")
-	if !ok {
-		t.Error(errors.New("missing key DOTAHeroes"))
+	heroes, err := root.Get("DOTAHeroes")
+	if err != nil {
+		t.Error(err)
 		return
 	}
 
-	antimage, ok := heroes.Get("npc_dota_hero_antimage")
-	if !ok {
-		t.Error(errors.New("missing key npc_dota_hero_antimage"))
+	antimage, err := heroes.Get("npc_dota_hero_antimage")
+	if err != nil {
+		t.Error(err)
 		return
 	}
 
-	heroID, ok := antimage.GetInt("HeroID")
-	if !ok {
-		t.Error(errors.New("missing key HeroID"))
+	heroID, err := antimage.GetInt("HeroID")
+	if err != nil {
+		t.Error(err)
 		return
 	}
 
