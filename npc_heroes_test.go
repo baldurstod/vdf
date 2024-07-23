@@ -46,6 +46,17 @@ func TestNpcHeroes(t *testing.T) {
 		return
 	}
 
+	modelScale, err := antimage.GetFloat32("ModelScale")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	if modelScale != 0.9 {
+		t.Error(errors.New("wrong modelScale"))
+		return
+	}
+
 	enabled, err := antimage.GetBool("Enabled")
 	if err != nil {
 		t.Error(err)

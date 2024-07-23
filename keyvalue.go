@@ -60,6 +60,34 @@ func (kv *KeyValue) GetBool(key string) (bool, error) {
 	}
 }
 
+func (kv *KeyValue) GetFloat32(key string) (float32, error) {
+	s, err := kv.GetString(key)
+	if err != nil {
+		return 0, err
+	}
+
+	f, err := strconv.ParseFloat(s, 32)
+	if err != nil {
+		return 0, fmt.Errorf("can't convert key %s to float: <%w>", key, err)
+	}
+
+	return float32(f), nil
+}
+
+func (kv *KeyValue) GetFloat64(key string) (float64, error) {
+	s, err := kv.GetString(key)
+	if err != nil {
+		return 0, err
+	}
+
+	f, err := strconv.ParseFloat(s, 64)
+	if err != nil {
+		return 0, fmt.Errorf("can't convert key %s to float: <%w>", key, err)
+	}
+
+	return f, nil
+}
+
 func (kv *KeyValue) ToString() (string, error) {
 	switch kv.Value.(type) {
 	case string:
