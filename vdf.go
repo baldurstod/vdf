@@ -41,7 +41,7 @@ func (vdf *VDF) Parse(s []byte) KeyValue {
 	stringStack := stack.New()
 	levelStack := stack.New()
 
-	var currentLevel *KeyValue = &KeyValue{Key: "root", Value: []*KeyValue{}, isRoot: true}
+	var currentLevel *KeyValue = &KeyValue{Key: "root" /*, Value: []*KeyValue{}*/, isRoot: true}
 	var result KeyValue
 
 TokenLoop:
@@ -50,10 +50,11 @@ TokenLoop:
 		switch token {
 		case OPENING_BRACE:
 			key := stringStack.Pop().(string)
-			subLevel := KeyValue{Key: key, Value: []*KeyValue{}}
+			subLevel := KeyValue{Key: key /*, Value: []*KeyValue{}*/}
 
 			if currentLevel != nil {
-				currentLevel.Value = append(currentLevel.Value.([]*KeyValue), &subLevel)
+				//currentLevel.Value = append(currentLevel.Value.([]*KeyValue), &subLevel)
+				currentLevel.AddSubElement(&subLevel)
 			}
 
 			levelStack.Push(currentLevel)
@@ -67,7 +68,10 @@ TokenLoop:
 			if stringStack.Len() > 1 {
 				value := stringStack.Pop().(string)
 				key := stringStack.Pop().(string)
-				currentLevel.Value = append(currentLevel.Value.([]*KeyValue), &KeyValue{Key: key, Value: value})
+				//currentLevel.Value = append(currentLevel.Value.([]*KeyValue), &KeyValue{Key: key, Value: value})
+				stringValue := KeyValue{Key: key}
+				stringValue.SetStringValue((value))
+				currentLevel.AddSubElement(&stringValue)
 			}
 		case STRING_VALUE:
 			stringStack.Push(s)

@@ -9,9 +9,40 @@ import (
 )
 
 type KeyValue struct {
-	Key    string
-	Value  interface{}
+	Key string
+	// Value can be of type string or map[string][]*KeyValue
+	value  interface{}
 	isRoot bool
+}
+
+func (kv *KeyValue) SetStringValue(value string) error {
+	switch kv.value.(type) {
+	case string:
+	case nil:
+	default:
+		return errors.New("can't replace a non string value with a sting")
+	}
+	kv.value = value
+	return nil
+}
+
+func (kv *KeyValue) AddSubElement(element *KeyValue) error {
+	switch kv.value.(type) {
+	case string:
+		return errors.New("can't add a subelement to a string value")
+	case nil:
+		// Allocate the value
+		kv.value = map[string][]*KeyValue{}
+	}
+
+	value, found := kv.value.(map[string][]*KeyValue)[element.Key]
+	if found {
+		kv.value.(map[string][]*KeyValue)[element.Key] = append(value, element)
+	} else {
+		kv.value.(map[string][]*KeyValue)[element.Key] = []*KeyValue{element}
+	}
+
+	return nil
 }
 
 func (kv *KeyValue) GetString(key string) (string, error) {
@@ -20,7 +51,7 @@ func (kv *KeyValue) GetString(key string) (string, error) {
 		return "", err
 	}
 
-	s, ok := a.Value.(string)
+	s, ok := a.value.(string)
 	if !ok {
 		return "", errors.New("unexpected value type for key " + key)
 	}
@@ -34,7 +65,7 @@ func (kv *KeyValue) GetInt(key string) (int, error) {
 		return 0, err
 	}
 
-	s, ok := a.Value.(string)
+	s, ok := a.value.(string)
 	if !ok {
 		return 0, errors.New("unexpected value type for key " + key)
 	}
@@ -89,9 +120,9 @@ func (kv *KeyValue) GetFloat64(key string) (float64, error) {
 }
 
 func (kv *KeyValue) ToString() (string, error) {
-	switch kv.Value.(type) {
+	switch kv.value.(type) {
 	case string:
-		return kv.Value.(string), nil
+		return kv.value.(string), nil
 	default:
 		return "", errors.New("unexpected value type")
 	}
@@ -125,29 +156,24 @@ func (kv *KeyValue) ToBool() (bool, error) {
 }
 
 func (kv *KeyValue) Get(key string) (*KeyValue, error) {
-	switch v := kv.Value.(type) {
-	case []*KeyValue:
-		for _, item := range v {
-			if key == item.Key {
-				return item, nil
-			}
+	switch v := kv.value.(type) {
+	case map[string][]*KeyValue:
+		subElement, found := v[key]
+		if found {
+			return subElement[0], nil
+		} else {
+			return nil, errors.New("key not found: " + key)
 		}
 	default:
 		return nil, errors.New("unexpected element type")
 	}
-	return nil, errors.New("key not found: " + key)
 }
 
 func (kv *KeyValue) GetAll(key string) ([]*KeyValue, error) {
-	switch v := kv.Value.(type) {
-	case []*KeyValue:
-		ret := []*KeyValue{}
-		for _, item := range v {
-			if key == item.Key {
-				ret = append(ret, item)
-			}
-		}
-		return ret, nil
+	switch v := kv.value.(type) {
+	case map[string][]*KeyValue:
+		subElement := v[key]
+		return subElement, nil
 	default:
 		return nil, errors.New("unexpected element type")
 	}
@@ -173,21 +199,21 @@ func (kv *KeyValue) GetSubElement(path []string) (*KeyValue, error) {
 }
 
 func (kv *KeyValue) GetChilds() []*KeyValue {
-	switch kv.Value.(type) {
+	switch kv.value.(type) {
 	case []*KeyValue:
-		return kv.Value.([]*KeyValue)
+		return kv.value.([]*KeyValue)
 	}
 	return []*KeyValue{}
 }
 
 func (kv *KeyValue) ToStringMap() (*map[string]string, error) {
-	switch v := kv.Value.(type) {
+	switch v := kv.value.(type) {
 	case []*KeyValue:
 		ret := make(map[string]string)
 		for _, item := range v {
-			switch item.Value.(type) {
+			switch item.value.(type) {
 			case string:
-				ret[item.Key] = item.Value.(string)
+				ret[item.Key] = item.value.(string)
 			}
 		}
 		return &ret, nil
@@ -214,12 +240,12 @@ func (kv *KeyValue) GetSubElementStringMap(path []string) (*map[string]string, e
 }
 
 func (kv *KeyValue) RemoveDuplicates() {
-	switch kv.Value.(type) {
+	switch kv.value.(type) {
 	case []*KeyValue:
 		allKeys := make(map[string]bool)
 		list := []*KeyValue{}
 
-		arr := kv.Value.([]*KeyValue)
+		arr := kv.value.([]*KeyValue)
 		for _, item := range arr {
 			key := item.Key
 			if _, value := allKeys[key]; !value {
@@ -228,7 +254,7 @@ func (kv *KeyValue) RemoveDuplicates() {
 				item.RemoveDuplicates()
 			}
 		}
-		kv.Value = list
+		kv.value = list
 	}
 }
 
@@ -242,7 +268,7 @@ func (kv *KeyValue) Print(optional ...int) {
 		tabs = -1
 	}
 
-	switch v := kv.Value.(type) {
+	switch v := kv.value.(type) {
 	case []*KeyValue:
 		if !kv.isRoot {
 			PrintTabs(tabs)
@@ -260,7 +286,7 @@ func (kv *KeyValue) Print(optional ...int) {
 		}
 	case string:
 		PrintTabs(tabs)
-		fmt.Println("\"" + kv.Key + "\"		\"" + kv.Value.(string) + "\"")
+		fmt.Println("\"" + kv.Key + "\"		\"" + kv.value.(string) + "\"")
 	default:
 		fmt.Println(kv)
 		panic("unknown type")
@@ -270,12 +296,18 @@ func (kv *KeyValue) Print(optional ...int) {
 func (kv *KeyValue) toJSON() interface{} {
 	ret := make(map[string]interface{})
 
-	switch v := kv.Value.(type) {
+	switch v := kv.value.(type) {
 	case string:
-		return kv.Value.(string)
-	case []*KeyValue:
-		for _, subKv := range v {
-			ret[subKv.Key] = subKv.toJSON()
+		return kv.value.(string)
+	case map[string][]*KeyValue:
+		for key, subKv := range v {
+			if len(subKv) == 1 {
+				ret[key] = subKv[0].toJSON()
+			} else {
+				for i, element := range subKv {
+					ret[key+"$"+strconv.Itoa(i)] = element.toJSON()
+				}
+			}
 		}
 	}
 
