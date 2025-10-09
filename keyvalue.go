@@ -199,21 +199,29 @@ func (kv *KeyValue) GetSubElement(path []string) (*KeyValue, error) {
 }
 
 func (kv *KeyValue) GetChilds() []*KeyValue {
-	switch kv.value.(type) {
-	case []*KeyValue:
-		return kv.value.([]*KeyValue)
+	switch v := kv.value.(type) {
+	case map[string][]*KeyValue:
+		result := []*KeyValue{}
+
+		for _, subKv := range v {
+			result = append(result, subKv...)
+		}
+
+		return result
 	}
 	return []*KeyValue{}
 }
 
 func (kv *KeyValue) ToStringMap() (*map[string]string, error) {
 	switch v := kv.value.(type) {
-	case []*KeyValue:
+	case map[string][]*KeyValue:
 		ret := make(map[string]string)
-		for _, item := range v {
-			switch item.value.(type) {
-			case string:
-				ret[item.Key] = item.value.(string)
+		for _, arr := range v {
+			for _, item := range arr {
+				switch item.value.(type) {
+				case string:
+					ret[item.Key] = item.value.(string)
+				}
 			}
 		}
 		return &ret, nil
@@ -271,15 +279,17 @@ func (kv *KeyValue) Print(optional ...int) {
 	}
 
 	switch v := kv.value.(type) {
-	case []*KeyValue:
+	case map[string][]*KeyValue:
 		if !kv.isRoot {
 			PrintTabs(tabs)
 			fmt.Println("\"" + kv.Key + "\"")
 			PrintTabs(tabs)
 			fmt.Println("{")
 		}
-		for _, val := range v {
-			val.Print(tabs + 1)
+		for _, arr := range v {
+			for _, val := range arr {
+				val.Print(tabs + 1)
+			}
 		}
 
 		if !kv.isRoot {
