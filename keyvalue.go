@@ -239,6 +239,7 @@ func (kv *KeyValue) GetSubElementStringMap(path []string) (*map[string]string, e
 	return sub.ToStringMap()
 }
 
+/*
 func (kv *KeyValue) RemoveDuplicates() {
 	switch kv.value.(type) {
 	case []*KeyValue:
@@ -257,6 +258,7 @@ func (kv *KeyValue) RemoveDuplicates() {
 		kv.value = list
 	}
 }
+*/
 
 func (kv *KeyValue) Print(optional ...int) {
 	tabs := 0
