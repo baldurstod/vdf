@@ -11,7 +11,7 @@ import (
 type KeyValue struct {
 	Key string
 	// Value can be of type string or map[string][]*KeyValue
-	value  interface{}
+	value  any
 	isRoot bool
 }
 
@@ -43,6 +43,10 @@ func (kv *KeyValue) AddSubElement(element *KeyValue) error {
 	}
 
 	return nil
+}
+
+func (kv *KeyValue) GetValue() any {
+	return kv.value
 }
 
 func (kv *KeyValue) GetString(key string) (string, error) {
