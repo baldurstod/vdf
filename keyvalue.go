@@ -43,6 +43,29 @@ func (kv *KeyValue) AddSubElement(element *KeyValue) error {
 	}
 
 	return nil
+
+}
+func (kv *KeyValue) MergeSubElement(element *KeyValue) error {
+	switch kv.value.(type) {
+	case string:
+		return errors.New("can't add a subelement to a string value")
+	case nil:
+		// Allocate the value
+		kv.value = map[string][]*KeyValue{}
+	}
+
+	value, found := kv.value.(map[string][]*KeyValue)[element.Key]
+	if found {
+		if len(value) == 0 {
+			kv.value.(map[string][]*KeyValue)[element.Key] = append(value, element)
+		} else {
+			value[0].Merge(element)
+		}
+	} else {
+		kv.value.(map[string][]*KeyValue)[element.Key] = []*KeyValue{element}
+	}
+
+	return nil
 }
 
 func (kv *KeyValue) GetValue() any {
@@ -332,4 +355,23 @@ func (kv *KeyValue) toJSON() interface{} {
 
 func (kv *KeyValue) MarshalJSON() ([]byte, error) {
 	return json.Marshal(kv.toJSON())
+}
+
+// Merge the other into this KeyValue
+func (kv *KeyValue) Merge(other *KeyValue) error {
+	// Check the values
+	switch valueOther := other.value.(type) {
+	case string:
+		return errors.New("Can't merge an element whose value is a string, only maps can be merged")
+	case map[string][]*KeyValue:
+		for _, v := range valueOther {
+			for _, vi := range v {
+				err := kv.MergeSubElement(vi)
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
 }

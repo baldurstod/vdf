@@ -1,5 +1,4 @@
 [![GoDoc](https://godoc.org/github.com/baldurstod/vdf?status.png)](http://godoc.org/github.com/baldurstod/vdf)
-[![Go Report Card](https://goreportcard.com/badge/github.com/baldurstod/vdf)](https://goreportcard.com/badge/github.com/baldurstod/vdf)
 
 # vdf
 A VDF (Valve Data Format) parser for go. Handles comments and UTF-8 characters

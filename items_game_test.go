@@ -1,6 +1,7 @@
 package vdf_test
 
 import (
+	"encoding/json"
 	"os"
 	"path"
 	"testing"
@@ -19,5 +20,10 @@ func TestItems(t *testing.T) {
 	}
 
 	vdf := vdf.VDF{}
-	_ = vdf.Parse(dat)
+	kv := vdf.Parse(dat, nil)
+
+	p, _ := json.MarshalIndent(&kv, "", "\t")
+	os.WriteFile(path.Join("./var/", "items_game.json"), p, 0666)
+
+	kv.Print()
 }

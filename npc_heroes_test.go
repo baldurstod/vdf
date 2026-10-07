@@ -1,7 +1,9 @@
 package vdf_test
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"os"
 	"path"
@@ -9,6 +11,15 @@ import (
 
 	"github.com/baldurstod/vdf"
 )
+
+func GetFileContent(filepath string) ([]byte, error) {
+	dat, err := os.ReadFile(path.Join("./var/", filepath))
+	if err != nil {
+		return nil, err
+	}
+
+	return dat, nil
+}
 
 func TestNpcHeroes(t *testing.T) {
 	filename := "npc_heroes.txt"
@@ -21,7 +32,9 @@ func TestNpcHeroes(t *testing.T) {
 	}
 
 	vdf := vdf.VDF{}
-	root := vdf.Parse(dat)
+	root := vdf.Parse(dat, GetFileContent)
+	p, _ := json.MarshalIndent(&root, "", "\t")
+	fmt.Println(string(p))
 
 	heroes, err := root.Get("DOTAHeroes")
 	if err != nil {
